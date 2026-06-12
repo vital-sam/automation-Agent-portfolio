@@ -34,15 +34,15 @@ Automatizar o ciclo completo de prospecção e atendimento inicial de leads, inc
 ```mermaid
 flowchart TD
 
-A[Fluxo Automático<br>Google Maps + IA] --> D[Google Sheets Base Central]
-B[Fluxo Manual<br>Formulário Web] --> D
-C[Calendly Trigger<br>Reuniões] --> E[Code Node<br>Normalização]
+A[Fluxo Automático - Google Maps + IA] --> D[Google Sheets Base Central]
+B[Fluxo Manual - Formulário Web] --> D
+C[Calendly Trigger - Reuniões] --> E[Code Node - Normalização]
 
 E --> F[Busca Lead no Sheets]
 F --> D
 
-D --> G[Qualificação / Score IA]
-D --> H[CRM Status Update]
+D --> G[Qualificação e Score IA]
+D --> H[Atualização de CRM]
 
 Fluxos do Sistema
 Fluxo 1 — Aquisição Automática de Leads (Google Maps + IA)
