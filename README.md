@@ -33,10 +33,11 @@ Automatizar o ciclo completo de prospecção e atendimento inicial de leads, inc
 
 O sistema é dividido em quatro fluxos integrados:
 
+```text
                   ┌─────────────────────────────────────────────────┐
                   │           Google Sheets (CRM Leve)              │
                   │         planilha: leads_maps                    │
-                  │  3 abas: Leads | eventos | (config)            │
+                  │  3 abas: Leads | eventos | (config)             │
                   └──────────┬──────────────┬──────────────────────┘
                              │              │
               ┌──────────────┘              └──────────────┐
@@ -55,7 +56,7 @@ O sistema é dividido em quatro fluxos integrados:
               │                                        │
               │              ┌─────────────────┐        │
               │              │   PROJETO 3     │        │
-              │              │   Agente WhatsApp│        │
+              │              │ Agente WhatsApp │        │
               └──────────────►   (IA Local)    ◄────────┘
                              │                 │
                              │  🧠 Ollama      │
@@ -63,6 +64,7 @@ O sistema é dividido em quatro fluxos integrados:
                              │  💬 Memória     │
                              │  🔧 Parser JSON │
                              └─────────────────┘
+```
 ---
 
 ### Fluxo 1 — Aquisição Automática de Leads (Google Maps + IA)
@@ -306,44 +308,43 @@ O status do lead evolui conforme eventos:
 
 ---
 ### Projeto 3 — Agente WhatsApp com IA Local (WAHA + n8n + Ollama)
-Arquivo: workflows/agente_whatsapp_ollama.json
+**Arquivo:** `workflows/agente_whatsapp_ollama.json`
 
 Visão Geral:
 Agente conversacional 100% offline rodando IA local (Llama 3.2 3B via Ollama), com memória por usuário e envio anti-spam.
 
-Pipeline do Agente
-kotlin
-🌐 WAHA Trigger: message.any  
-       │  
-       ▼  
-🔄 Normalize Event  
-  • Extrai: from, body, fromMe, notifyName  
-  • Garante formato @c.us  
-       │  
-       ▼  
-🔻 Filtrar Mensagens  
-  • Ignora vazias  
-  • Ignora FROM_ME (eco do próprio bot)  
-  • Ignora mídia sem texto  
-       │  
-       ▼  
-✏️ Edit Fields (prepara payload)  
-  • session, data.from, data.message, data.nome  
-  • data.primeiro_nome, data.hasMedia = false  
-       │  
-       ▼  
-🧠 AI Agent (Ollama — Llama 3.2 3B)  
-  ┌─────────────────────────────────────────┐  
-  │ Model:        Llama 3.2 3B              │  
-  │ Temperature:  0.3 (baixa = respostas     │  
-  │               consistentes)              │  
-  │ System Prompt: "Você é atendente de      │  
-  │ WhatsApp.                                │ 
-  │ WhatsApp. Responda curto, direto e       │
-  │ amigável."                               │
-  │                                          │
-  │ Formato saída obrigatório:               │
-  │ {"paragraphs":["resposta curta"]}        │
+### Pipeline do Agente
+
+```text
+🌐 WAHA Trigger: message.any
+       │
+       ▼
+🔄 Normalize Event
+  • Extrai: from, body, fromMe, notifyName
+  • Garante formato @c.us
+       │
+       ▼
+🔻 Filtrar Mensagens
+  • Ignora vazias
+  • Ignora FROM_ME (eco do próprio bot)
+  • Ignora mídia sem texto
+       │
+       ▼
+✏️ Edit Fields (prepara payload)
+  • session, data.from, data.message, data.nome
+  • data.primeiro_nome, data.hasMedia = false
+       │
+       ▼
+🧠 AI Agent (Ollama — Llama 3.2 3B)
+  ┌─────────────────────────────────────────┐
+  │ Model:        Llama 3.2 3B              │
+  │ Temperature:  0.3                       │
+  │ System Prompt:                          │
+  │ "Você é atendente de WhatsApp.          │
+  │ Responda curto, direto e amigável."     │
+  │                                         │
+  │ Saída obrigatória:                      │
+  │ {"paragraphs":["resposta curta"]}       │
   └─────────────────────────────────────────┘
        │
        ▼
@@ -354,21 +355,20 @@ kotlin
        │
        ▼
 🔧 Parsear Resposta (robusto)
-  • Remove aspas quebradas no final do JSON
+  • Remove aspas quebradas
   • Tenta JSON.parse()
-  • Fallback 1: regex extrai texto bruto
+  • Fallback 1: regex
   • Fallback 2: "Desculpe, pode repetir? 😊"
        │
        ▼
 🔄 Loop por Parágrafos
-  • Divide resposta em blocos menores
        │
        ▼
-⏳ Delay Anti-Spam: 3s entre cada parágrafo
+⏳ Delay Anti-Spam: 3s
        │
        ▼
 📤 WAHA: Enviar Mensagem
-  • chatId, paragraph, session
+```
   
 ## Características Técnicas
 # Característica	|  Detalhe
