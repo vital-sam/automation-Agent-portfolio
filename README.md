@@ -371,31 +371,47 @@ Agente conversacional 100% offline rodando IA local (Llama 3.2 3B via Ollama), c
 ```
   
 ## Características Técnicas
-# Característica	|  Detalhe
-Modelo de IA	      Llama 3.2 3B (Ollama local)
-Temperatura	        0.3 (baixa — respostas consistentes)
-Memória	            Buffer de janela (10 turnos por usuário)
-Parser              JSON	Três níveis de fallback
-Anti-spam	          3s de delay entre mensagens
-Formato saída	      {"paragraphs": ["resposta"]}
-Alternativa	        OpenRouter (Google Gemma 3) disponível mas desativado
+
+| Característica | Detalhe |
+|---------------|----------|
+| Modelo de IA | Llama 3.2 3B (Ollama local) |
+| Temperatura | 0.3 (baixa — respostas consistentes) |
+| Memória | Buffer de janela (10 turnos por usuário) |
+| Parser JSON | Três níveis de fallback |
+| Anti-spam | 3 segundos entre mensagens |
+| Formato de saída | `{"paragraphs":["resposta"]}` |
+| Alternativa | OpenRouter (Google Gemma 3) disponível mas desativado |
 
 💡 Dica: O agente é propositalmente simples e direto — sem RAG, sem ferramentas externas. Ele atua como primeiro atendimento, qualificando leads e transferindo para humano quando necessário (via human_handoff).
 
 ## ⚙️ Stack Técnica
 
-Ferramenta	    Versão	                    Função	                    Custo
-n8n	            ≥ 1.0	                      Orquestrador low-code	      Gratuito (self-hosted)
-Ollama	        ≥ 0.3	                      IA local (LLM)	            Gratuito
-WAHA	          ≥ 2.0	                      API WhatsApp	              Gratuito (self-hosted)
-Google Sheets	    —	                        CRM leve / banco de dados	  Gratuito
-HasData	        API v2	                    Scraping Google Maps	      Gratuito (100 créditos/mês)
-OpenRouter	      —	                        IA cloud (fallback SDR)	    Gratuito (modelos free)
-Calendly	        —	                        Agendamento de reuniões	     Gratuito (básico)
+| Ferramenta | Versão | Função | Custo |
+|------------|---------|---------|--------|
+| n8n | ≥ 1.0 | Orquestrador low-code | Gratuito (self-hosted) |
+| Ollama | ≥ 0.3 | IA local (LLM) | Gratuito |
+| WAHA | ≥ 2.0 | API WhatsApp | Gratuito (self-hosted) |
+| Google Sheets | — | CRM leve / banco de dados | Gratuito |
+| HasData | API v2 | Scraping Google Maps | Gratuito (100 créditos/mês) |
+| OpenRouter | — | IA cloud (fallback SDR) | Gratuito (modelos free) |
+| Calendly | — | Agendamento de reuniões | Gratuito (plano básico) |
 
+### Stack de Containers (Docker)
+
+- Docker Engine: 29.1.3  
+- Docker Compose: v2.27.0  
+
+Containers ativos:
+
+- n8n (1.121.0) — Orquestração de workflows  
+- Ollama (0.3.14) — Execução local de modelos de IA  
+- WAHA — Integração WhatsApp HTTP API  
+
+---
 
 ### Diagrama de Conexões
 
+```text
 ┌─────────┐     ┌──────────┐     ┌──────────┐
 │ HasData │────▶│   n8n    │────▶│  Ollama  │
 │  (API)  │     │  (core)  │     │  (local) │
@@ -407,6 +423,7 @@ Calendly	        —	                        Agendamento de reuniões	     Gratu
     │ Google  │ │  WAHA   │ │Calendly │
     │ Sheets  │ │WhatsApp │ │Webhook  │
     └─────────┘ └─────────┘ └─────────┘
+```
 ---
 
 ## Infraestrutura de Execução
@@ -428,19 +445,6 @@ Calendly	        —	                        Agendamento de reuniões	     Gratu
 - Armazenamento: 80 GB (77 GB utilizáveis)  
 - Swap: 3.8 GB  
 - Arquitetura: x86_64  
-
----
-
-### Stack de Containers (Docker)
-
-- Docker Engine: 29.1.3  
-- Docker Compose: v2.27.0  
-
-Containers ativos:
-
-- n8n (1.121.0) — Orquestração de workflows  
-- Ollama (0.3.14) — Execução local de modelos de IA  
-- WAHA — Integração WhatsApp HTTP API  
 
 ---
 
