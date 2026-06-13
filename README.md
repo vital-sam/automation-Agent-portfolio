@@ -33,6 +33,36 @@ Automatizar o ciclo completo de prospecção e atendimento inicial de leads, inc
 
 O sistema é dividido em quatro fluxos integrados:
 
+                  ┌─────────────────────────────────────────────────┐
+                  │           Google Sheets (CRM Leve)              │
+                  │         planilha: leads_maps                    │
+                  │  3 abas: Leads | eventos | (config)            │
+                  └──────────┬──────────────┬──────────────────────┘
+                             │              │
+              ┌──────────────┘              └──────────────┐
+              ▼                                            ▼
+┌─────────────────────────┐              ┌─────────────────────────┐
+│   PROJETO 1             │              │   PROJETO 2             │
+│   Gerador de Leads      │              │   CRM + Disparo         │
+│   (Google Maps + IA)    │              │   (Calendly + Sheets)   │
+│                         │              │                         │
+│  ⏰ Agendado (50 min)   │              │  ⏰ WF2: Outbound (1h)  │
+│  📋 Manual (form)       │              │  📥 WF3: Inbound (cont) │
+│  🧹 Limpeza + Score     │              │  🔄 WF4: Follow-up (2h) │
+│  🤖 IA SDR (insights)   │              │  📅 Calendly Trigger    │
+└─────────────┬───────────┘              └─────────────┬───────────┘
+              │                                        │
+              │                                        │
+              │              ┌─────────────────┐        │
+              │              │   PROJETO 3     │        │
+              │              │   Agente WhatsApp│        │
+              └──────────────►   (IA Local)    ◄────────┘
+                             │                 │
+                             │  🧠 Ollama      │
+                             │  Llama 3.2 3B   │
+                             │  💬 Memória     │
+                             │  🔧 Parser JSON │
+                             └─────────────────┘
 ---
 
 ### Fluxo 1 — Aquisição Automática de Leads (Google Maps + IA)
@@ -48,7 +78,7 @@ O sistema é dividido em quatro fluxos integrados:
 
 ---
 
-### Fluxo 2 — Aquisição Manual de Leads (Formulário Web)
+### Aquisição Manual de Leads (Formulário Web)
 
 - Entrada manual de parâmetros:
   - Nicho  
@@ -67,7 +97,7 @@ O sistema é dividido em quatro fluxos integrados:
 
 ---
 
-### Fluxo 3 — Gestão de Reuniões (Calendly + Atualização de CRM)
+###  Fluxo 2 — Gestão de Reuniões (Calendly + Atualização de CRM)
 
 #### Trigger de Evento
 
@@ -128,9 +158,9 @@ Após localizar o lead, o sistema atualiza:
 
 ---
 
-### Fluxo 4 — Agente de WhatsApp (WAHA + Automação + CRM)
+### (WAHA + Automação + CRM)
 
-Este fluxo é responsável pela comunicação ativa e reativa com leads através do WhatsApp, integrando automação, IA e atualização de CRM.
+(WF2, WF3, WF4) é responsável pela comunicação ativa e reativa com leads através do WhatsApp, integrando automação, IA e atualização de CRM.
 
 #### Entrada de Mensagens
 
@@ -274,6 +304,109 @@ O status do lead evolui conforme eventos:
 - Interação WhatsApp → engajamento  
 - Transferência → human_handoff = TRUE  
 
+---
+### Projeto 3 — Agente WhatsApp com IA Local (WAHA + n8n + Ollama)
+Arquivo: workflows/agente_whatsapp_ollama.json
+
+Visão Geral:
+Agente conversacional 100% offline rodando IA local (Llama 3.2 3B via Ollama), com memória por usuário e envio anti-spam.
+
+Pipeline do Agente
+kotlin
+🌐 WAHA Trigger: message.any  
+       │  
+       ▼  
+🔄 Normalize Event  
+  • Extrai: from, body, fromMe, notifyName  
+  • Garante formato @c.us  
+       │  
+       ▼  
+🔻 Filtrar Mensagens  
+  • Ignora vazias  
+  • Ignora FROM_ME (eco do próprio bot)  
+  • Ignora mídia sem texto  
+       │  
+       ▼  
+✏️ Edit Fields (prepara payload)  
+  • session, data.from, data.message, data.nome  
+  • data.primeiro_nome, data.hasMedia = false  
+       │  
+       ▼  
+🧠 AI Agent (Ollama — Llama 3.2 3B)  
+  ┌─────────────────────────────────────────┐  
+  │ Model:        Llama 3.2 3B              │  
+  │ Temperature:  0.3 (baixa = respostas     │  
+  │               consistentes)              │  
+  │ System Prompt: "Você é atendente de      │  
+  │ WhatsApp.                                │ 
+  │ WhatsApp. Responda curto, direto e       │
+  │ amigável."                               │
+  │                                          │
+  │ Formato saída obrigatório:               │
+  │ {"paragraphs":["resposta curta"]}        │
+  └─────────────────────────────────────────┘
+       │
+       ▼
+🧠 Simple Memory (Buffer Window)
+  • Chave: session_{data}_{from}
+  • Mantém últimas 10 interações
+  • Contexto contínuo por usuário
+       │
+       ▼
+🔧 Parsear Resposta (robusto)
+  • Remove aspas quebradas no final do JSON
+  • Tenta JSON.parse()
+  • Fallback 1: regex extrai texto bruto
+  • Fallback 2: "Desculpe, pode repetir? 😊"
+       │
+       ▼
+🔄 Loop por Parágrafos
+  • Divide resposta em blocos menores
+       │
+       ▼
+⏳ Delay Anti-Spam: 3s entre cada parágrafo
+       │
+       ▼
+📤 WAHA: Enviar Mensagem
+  • chatId, paragraph, session
+  
+## Características Técnicas
+# Característica	|  Detalhe
+Modelo de IA	      Llama 3.2 3B (Ollama local)
+Temperatura	        0.3 (baixa — respostas consistentes)
+Memória	            Buffer de janela (10 turnos por usuário)
+Parser              JSON	Três níveis de fallback
+Anti-spam	          3s de delay entre mensagens
+Formato saída	      {"paragraphs": ["resposta"]}
+Alternativa	        OpenRouter (Google Gemma 3) disponível mas desativado
+
+💡 Dica: O agente é propositalmente simples e direto — sem RAG, sem ferramentas externas. Ele atua como primeiro atendimento, qualificando leads e transferindo para humano quando necessário (via human_handoff).
+
+## ⚙️ Stack Técnica
+
+Ferramenta	    Versão	                    Função	                    Custo
+n8n	            ≥ 1.0	                      Orquestrador low-code	      Gratuito (self-hosted)
+Ollama	        ≥ 0.3	                      IA local (LLM)	            Gratuito
+WAHA	          ≥ 2.0	                      API WhatsApp	              Gratuito (self-hosted)
+Google Sheets	    —	                        CRM leve / banco de dados	  Gratuito
+HasData	        API v2	                    Scraping Google Maps	      Gratuito (100 créditos/mês)
+OpenRouter	      —	                        IA cloud (fallback SDR)	    Gratuito (modelos free)
+Calendly	        —	                        Agendamento de reuniões	     Gratuito (básico)
+
+
+### Diagrama de Conexões
+
+┌─────────┐     ┌──────────┐     ┌──────────┐
+│ HasData │────▶│   n8n    │────▶│  Ollama  │
+│  (API)  │     │  (core)  │     │  (local) │
+└─────────┘     └────┬─────┘     └──────────┘
+                     │
+          ┌──────────┼──────────┐
+          ▼          ▼          ▼
+    ┌─────────┐ ┌─────────┐ ┌─────────┐
+    │ Google  │ │  WAHA   │ │Calendly │
+    │ Sheets  │ │WhatsApp │ │Webhook  │
+    └─────────┘ └─────────┘ └─────────┘
 ---
 
 ## Infraestrutura de Execução
